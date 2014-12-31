@@ -67,6 +67,17 @@ mpris2_button_next (GtkWidget    *widget,
 }
 
 static void
+mpris2_connection (Mpris2Client            *mpris2,
+                   gboolean                 connected,
+                   MultimediaControlApplet *applet)
+{
+	gtk_widget_set_tooltip_text (GTK_WIDGET(applet->applet),
+	                             connected ?
+	                             mpris2_client_get_player_identity (mpris2) :
+	                             "Click to detect the player");
+}
+
+static void
 mpris2_playback_status (Mpris2Client            *mpris2,
                         PlaybackStatus           playback_status,
                         MultimediaControlApplet *applet)
@@ -130,6 +141,8 @@ multimedia_control_applet_factory (MatePanelApplet *applet_widget,
 	 * Mpris2
 	 */
 	applet->mpris2 = mpris2_client_new ();
+	g_signal_connect (G_OBJECT (applet->mpris2), "connection",
+	                  G_CALLBACK(mpris2_connection), applet);
 	g_signal_connect (G_OBJECT (applet->mpris2), "playback-status",
 	                  G_CALLBACK(mpris2_playback_status), applet);
 
@@ -181,6 +194,10 @@ multimedia_control_applet_factory (MatePanelApplet *applet_widget,
 	 * Check if a player is running and upate.
 	 */
 	mpris2_client_auto_set_player (applet->mpris2);
+
+	mpris2_connection (applet->mpris2,
+	                   mpris2_client_is_connected(applet->mpris2),
+	                   applet);
 	mpris2_playback_status (applet->mpris2,
 	                        mpris2_client_get_playback_status(applet->mpris2),
 	                        applet);
