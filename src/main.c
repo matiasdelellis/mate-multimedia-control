@@ -73,12 +73,23 @@ mpris2_playback_status (Mpris2Client            *mpris2,
 {
 	switch (playback_status) {
 		case PLAYING:
-			gtk_button_set_label (GTK_BUTTON(applet->play_button), GTK_STOCK_MEDIA_PAUSE);
+			gtk_widget_set_sensitive (applet->prev_button, TRUE);
+			gtk_button_set_label (GTK_BUTTON(applet->play_button),
+			                      GTK_STOCK_MEDIA_PAUSE);
+			gtk_widget_set_sensitive (applet->stop_button, TRUE);
+			gtk_widget_set_sensitive (applet->next_button, TRUE);
 			break;
 		case PAUSED:
+			gtk_button_set_label (GTK_BUTTON(applet->play_button),
+			                      GTK_STOCK_MEDIA_PLAY);
+			break;
 		case STOPPED:
 		default:
-			gtk_button_set_label (GTK_BUTTON(applet->play_button), GTK_STOCK_MEDIA_PLAY);
+			gtk_widget_set_sensitive (applet->prev_button, FALSE);
+			gtk_button_set_label (GTK_BUTTON(applet->play_button),
+			                      GTK_STOCK_MEDIA_PLAY);
+			gtk_widget_set_sensitive (applet->stop_button, FALSE);
+			gtk_widget_set_sensitive (applet->next_button, FALSE);
 			break;
 	}
 }
@@ -115,13 +126,16 @@ multimedia_control_applet_factory (MatePanelApplet *applet_widget,
 
 	applet->applet = applet_widget;
 
+	/*
+	 * Mpris2
+	 */
 	applet->mpris2 = mpris2_client_new ();
 	g_signal_connect (G_OBJECT (applet->mpris2), "playback-status",
 	                  G_CALLBACK(mpris2_playback_status), applet);
 
-	mate_panel_applet_set_flags (applet_widget,
-		MATE_PANEL_APPLET_HAS_HANDLE | MATE_PANEL_APPLET_EXPAND_MINOR);
-
+	/*
+	 * Widgets
+	 */
 	box = gtk_hbox_new(FALSE, 0);
 
 	button = GTK_WIDGET(gtk_button_new_from_stock(GTK_STOCK_MEDIA_PREVIOUS));
@@ -130,6 +144,7 @@ multimedia_control_applet_factory (MatePanelApplet *applet_widget,
 	                  G_CALLBACK(mpris2_button_prev), applet->mpris2);
 	gtk_box_pack_start (GTK_BOX(box), GTK_WIDGET(button),
 	                    FALSE, FALSE, 0);
+	applet->prev_button = button;
 
 	button = GTK_WIDGET(gtk_button_new_from_stock(GTK_STOCK_MEDIA_PLAY));
 	gtk_button_set_relief (GTK_BUTTON(button), GTK_RELIEF_NONE);
@@ -145,6 +160,7 @@ multimedia_control_applet_factory (MatePanelApplet *applet_widget,
 	                  G_CALLBACK(mpris2_button_stop), applet->mpris2);
 	gtk_box_pack_start (GTK_BOX(box), GTK_WIDGET(button),
 	                    FALSE, FALSE, 0);
+	applet->stop_button = button;
 
 	button = GTK_WIDGET(gtk_button_new_from_stock(GTK_STOCK_MEDIA_NEXT));
 	gtk_button_set_relief (GTK_BUTTON(button), GTK_RELIEF_NONE);
@@ -152,6 +168,7 @@ multimedia_control_applet_factory (MatePanelApplet *applet_widget,
 	                  G_CALLBACK(mpris2_button_next), applet->mpris2);
 	gtk_box_pack_start (GTK_BOX(box), GTK_WIDGET(button),
 	                    FALSE, FALSE, 0);
+	applet->next_button = button;
 
 	g_signal_connect (G_OBJECT(applet_widget), "destroy",
 	                  G_CALLBACK(applet_destroy), (gpointer)applet);
@@ -159,6 +176,14 @@ multimedia_control_applet_factory (MatePanelApplet *applet_widget,
 	gtk_container_add(GTK_CONTAINER(applet_widget), box);
 
 	gtk_widget_show_all(GTK_WIDGET(applet_widget));
+
+	/*
+	 * Check if a player is running and upate.
+	 */
+	mpris2_client_auto_set_player (applet->mpris2);
+	mpris2_playback_status (applet->mpris2,
+	                        mpris2_client_get_playback_status(applet->mpris2),
+	                        applet);
 
 	return TRUE;
 }
