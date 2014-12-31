@@ -1,0 +1,10 @@
+[Applet Factory]
+Id=MultimediaControlAppletFactory
+Location=@LIBEXECDIR@/multimedia-control-applet
+Name=Multimedia Controls
+
+[MultimediaControlApplet]
+Name=Multimedia Controls
+Description=Control players compatible with mpris2
+Icon=multimedia-control-applet
+MateComponentId=OAFIID:MATE_MultimediaControlApplet
