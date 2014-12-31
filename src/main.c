@@ -66,24 +66,35 @@ mpris2_button_next (GtkWidget    *widget,
 	mpris2_client_next (mpris2);
 }
 
-/*
- * Applet
- */
-
-static gboolean
-applet_popup_menu (GtkWidget               *widget,
-                   GdkEventButton          *event,
-                   MultimediaControlApplet *applet)
+static void
+mpris2_playback_status (Mpris2Client            *mpris2,
+                        PlaybackStatus           playback_status,
+                        MultimediaControlApplet *applet)
 {
-	return TRUE;
+	switch (playback_status) {
+		case PLAYING:
+			gtk_button_set_label (GTK_BUTTON(applet->play_button), GTK_STOCK_MEDIA_PAUSE);
+			break;
+		case PAUSED:
+		case STOPPED:
+		default:
+			gtk_button_set_label (GTK_BUTTON(applet->play_button), GTK_STOCK_MEDIA_PLAY);
+			break;
+	}
 }
 
+/*
+ * Applet construction and signals.
+ */
 
 static void
 applet_destroy (MatePanelApplet         *applet_widget,
                 MultimediaControlApplet *applet)
 {
 	g_assert(applet);
+
+	g_object_unref (applet->mpris2);
+
 	g_free(applet);
 
 	return;
@@ -103,7 +114,10 @@ multimedia_control_applet_factory (MatePanelApplet *applet_widget,
 	applet = g_malloc0(sizeof(MultimediaControlApplet));
 
 	applet->applet = applet_widget;
+
 	applet->mpris2 = mpris2_client_new ();
+	g_signal_connect (G_OBJECT (applet->mpris2), "playback-status",
+	                  G_CALLBACK(mpris2_playback_status), applet);
 
 	mate_panel_applet_set_flags (applet_widget,
 		MATE_PANEL_APPLET_HAS_HANDLE | MATE_PANEL_APPLET_EXPAND_MINOR);
@@ -114,8 +128,6 @@ multimedia_control_applet_factory (MatePanelApplet *applet_widget,
 	gtk_button_set_relief (GTK_BUTTON(button), GTK_RELIEF_NONE);
 	g_signal_connect (G_OBJECT(button), "clicked",
 	                  G_CALLBACK(mpris2_button_prev), applet->mpris2);
-	g_signal_connect (G_OBJECT(button), "button-press-event",
-	                  G_CALLBACK(applet_popup_menu), applet);
 	gtk_box_pack_start (GTK_BOX(box), GTK_WIDGET(button),
 	                    FALSE, FALSE, 0);
 
@@ -125,6 +137,7 @@ multimedia_control_applet_factory (MatePanelApplet *applet_widget,
 	                  G_CALLBACK(mpris2_button_play_pause), applet->mpris2);
 	gtk_box_pack_start (GTK_BOX(box), GTK_WIDGET(button),
 	                    FALSE, FALSE, 0);
+	applet->play_button = button;
 
 	button = GTK_WIDGET(gtk_button_new_from_stock(GTK_STOCK_MEDIA_STOP));
 	gtk_button_set_relief (GTK_BUTTON(button), GTK_RELIEF_NONE);

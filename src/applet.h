@@ -21,5 +21,7 @@
 
 typedef struct {
 	MatePanelApplet *applet;
+
 	Mpris2Client    *mpris2;
+	GtkWidget       *play_button;
 } MultimediaControlApplet;
